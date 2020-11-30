@@ -16,21 +16,39 @@
 
   Returns the type of the expression expr: 'num, 'str, 'bool, 'error
 |#
-(define (typeof expr typeenv)
-  (cond
-    ; Constants
-    [(number? expr) 'num]
-    ; TODO
-
-    ; Identifiers
-    ; TODO
-
-    ; Builtins
-    ; TODO
+(define/match (typeof expr typeenv)
+  
+  
+  ; Builtins
+  [((list '+ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
+  [((list '- e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
+  [((list '* e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
+  [((list '/ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
+  [((list '> e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'bool 'error)]
+  [((list '= e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'bool 'error)]
+  [((list '>= e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'bool 'error)]
+  [((list '++ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'str) (equal? (typeof e2 typeenv) 'str)) 'str 'error)]
+  [((list '! e1) typeenv) (if (equal? (typeof e1 typeenv) 'bool) 'bool 'error)]
+  [((list 'num->str e1) typeenv) (if (equal? (typeof e1 typeenv) 'num) 'str 'error)]
+  [((list 'len e1) typeenv) (if (equal? (typeof e1 typeenv) 'str) 'num 'error)]
+    
+    
+    
 
     ; Function Calls
-    ; TODO
-  ))
+  [((list func arg ...) typeenv) expr]
+  
+  [(expr typeenv) (cond
+                    
+    ; Constants
+    [(number? expr) 'num]
+    [(string? expr) 'str]
+    [(boolean? expr) 'bool]
+    ;[(list? expr) expr]    
+    ; Identifiers
+    [(symbol? expr) (let ([val (lookup expr typeenv)])
+                          (if (equal? val #f) 'error val))])]
+  )
 
 ; Helper functions for Task 1
 
@@ -51,7 +69,14 @@
   #f
 |#
 (define (lookup key alst)
-  (void))
+  (if (null? alst) #f
+      (let* ([first (first alst)]
+            [rest (rest alst)]
+            [first-key (car first)]
+            [first-value (cdr first)])
+        (if (equal? first-key key) first-value (lookup key rest))
+        ) 
+      ))
 
 ; Add your helper functions here
 
