@@ -17,8 +17,7 @@
   Returns the type of the expression expr: 'num, 'str, 'bool, 'error
 |#
 (define/match (typeof expr typeenv)
-  
-  
+ 
   ; Builtins
   [((list '+ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
   [((list '- e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
@@ -32,20 +31,19 @@
   [((list 'num->str e1) typeenv) (if (equal? (typeof e1 typeenv) 'num) 'str 'error)]
   [((list 'len e1) typeenv) (if (equal? (typeof e1 typeenv) 'str) 'num 'error)]
     
-    
-    
-
-    ; Function Calls
-  [((list func arg ...) typeenv) expr]
+  ; Function Calls
+  [((list fn expr ...) typeenv) (let* ([fn-type (lookup fn typeenv)]
+                                       [exp-arg-type (first fn-type)]
+                                       [fn-return-type (second fn-type)])
+                                  (if (check-func-valid exp-arg-type expr typeenv)
+                                      fn-return-type
+                                      'error))]
   
-  [(expr typeenv) (cond
-                    
-    ; Constants
+  [(expr typeenv) (cond             
+    ; Constants and Identifiers
     [(number? expr) 'num]
     [(string? expr) 'str]
-    [(boolean? expr) 'bool]
-    ;[(list? expr) expr]    
-    ; Identifiers
+    [(boolean? expr) 'bool]   
     [(symbol? expr) (let ([val (lookup expr typeenv)])
                           (if (equal? val #f) 'error val))])]
   )
@@ -79,7 +77,9 @@
       ))
 
 ; Add your helper functions here
-
+(define (check-func-valid exp-arg-type args typeenv)
+  (let ([actual-arg-type (foldl (lambda (arg acc) (append acc (list (typeof arg typeenv)))) '() args)])
+    (equal? actual-arg-type exp-arg-type)))
 ;-------------------------------------------------------------------------------
 ; * Task 2: A Type Inferencer Relation in miniKanren
 ;-------------------------------------------------------------------------------
