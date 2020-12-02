@@ -97,13 +97,16 @@
     ; constants: numbero, stringo, and boolo are miniKanren builtin relations
     ((numbero expr)
      (== type 'num))
-    ; TODO
-
+    ((stringo expr)
+     (== type 'str))
+    ((boolo expr)
+     (== type 'bool))
+    
     ; identifier: symbolo is a miniKanren builtin relation
-    ; TODO
+    ((symbolo expr)
+     (lookupo expr env type))
 
     ; builtins
-    ; TODO
 
     ; function calls
     ; TODO
@@ -124,8 +127,15 @@
   The relational form of the `lookup` function
 |#
 (define (lookupo key alst value)
-  (void))
+  (fresh (fkey fval rest)
+         (== (cons (cons fkey fval) rest) alst)
+         (conde ((== key fkey)
+                 (== value fval))
+                ((=/= key fkey)
+                 (lookupo key rest value)))))
 
 
 ; Add your helper functions here
-
+(define (boolo expr)
+  (conde ((== expr #t))
+         ((== expr #f))))
