@@ -17,7 +17,7 @@
   Returns the type of the expression expr: 'num, 'str, 'bool, 'error
 |#
 (define/match (typeof expr typeenv)
- 
+  
   ; Builtins
   [((list '+ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
   [((list '- e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
@@ -40,12 +40,12 @@
                                       'error))]
   
   [(expr typeenv) (cond             
-    ; Constants and Identifiers
-    [(number? expr) 'num]
-    [(string? expr) 'str]
-    [(boolean? expr) 'bool]   
-    [(symbol? expr) (let ([val (lookup expr typeenv)])
-                          (if (equal? val #f) 'error val))])]
+                    ; Constants and Identifiers
+                    [(number? expr) 'num]
+                    [(string? expr) 'str]
+                    [(boolean? expr) 'bool]   
+                    [(symbol? expr) (let ([val (lookup expr typeenv)])
+                                      (if (equal? val #f) 'error val))])]
   )
 
 ; Helper functions for Task 1
@@ -69,9 +69,9 @@
 (define (lookup key alst)
   (if (null? alst) #f
       (let* ([first (first alst)]
-            [rest (rest alst)]
-            [first-key (car first)]
-            [first-value (cdr first)])
+             [rest (rest alst)]
+             [first-key (car first)]
+             [first-value (cdr first)])
         (if (equal? first-key key) first-value (lookup key rest))
         ) 
       ))
@@ -94,26 +94,56 @@
 |#
 (define (typeo expr env type)
   (conde
-    ; constants: numbero, stringo, and boolo are miniKanren builtin relations
-    ((numbero expr)
-     (== type 'num))
-    ((stringo expr)
-     (== type 'str))
-    ((boolo expr)
-     (== type 'bool))
+   ; constants: numbero, stringo, and boolo are miniKanren builtin relations
+   ((numbero expr)
+    (== type 'num))
+   ((stringo expr)
+    (== type 'str))
+   ((boolo expr)
+    (== type 'bool))
     
-    ; identifier: symbolo is a miniKanren builtin relation
-    ((symbolo expr)
-     (lookupo expr env type))
+   ; identifier: symbolo is a miniKanren builtin relation
+   ((symbolo expr)
+    (lookupo expr env type))
 
-    ; builtins
+   ; builtins
 
-    ; function calls
-    ; TODO
+   ((fresh (builtin args rest e1 e2)
+           (== expr (cons builtin args))
+           (== args (cons e1 rest))
+           
+           (conde ((== rest '())
+                   (conde ( (== builtin '!)
+                            (typeo e1 env 'bool)
+                            (== type 'bool) )
+                          ((== builtin 'num->str)
+                           (typeo e1 env 'num)
+                           (== type 'str) )
+                          ((== builtin 'len)
+                           (typeo e1 env 'str)
+                           (== type 'num)))
+                   )
+                  ((=/= rest '()) (== rest (cons e2 '()))
+                                  (conde ((conde ((== builtin '+)) ((== builtin '-)) ((== builtin '*)) ((== builtin '/)))
+                                          (typeo e1 env 'num)
+                                          (typeo e2 env 'num)
+                                          (== type 'num) )
+                                         ((conde ((== builtin '>)) ((== builtin '=)) ((== builtin '>=)))
+                                          (typeo e1 env 'num)
+                                          (typeo e2 env 'num)
+                                          (== type 'bool) )
+                                         ((== builtin '++)
+                                          (typeo e1 env 'str)
+                                          (typeo e2 env 'str)
+                                          (== type 'str))
+                                         )))))
 
-    ; function definitions
-    ; TODO
-    ))
+   ; function calls
+   ; TODO
+
+   ; function definitions
+   ; TODO
+   ))
 
 
 ; Helper functions for Task 2
