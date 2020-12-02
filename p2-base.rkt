@@ -137,6 +137,12 @@
                                           (typeo e2 env 'str)
                                           (== type 'str))
                                          )))))
+   ((fresh (fn args fn-typ fn-rtn-typ fn-arg-type)
+           (== expr (cons fn args))
+           (== fn-typ (run 1 (out) (typeo fn env out)))
+           (== fn-typ (list (cons fn-arg-type (cons fn-rtn-typ '()))))
+           (type-listo args env fn-arg-type) (== type fn-rtn-typ)))
+      
 
    ; function calls
    ; TODO
@@ -169,3 +175,26 @@
 (define (boolo expr)
   (conde ((== expr #t))
          ((== expr #f))))
+
+(define (type-listo args typeenv exp-types)
+  (conde ((== args '()) (== exp-types '()))
+         ((=/= args '()) (=/= exp-types '())
+                         (fresh (farg rest-arg ftyp rest-typ)
+                                (== args (cons farg rest-arg))
+                                (== exp-types (cons ftyp rest-typ))
+                                (== (list ftyp) (run 1 (out) (typeo farg typeenv out)))
+                                (type-listo rest-arg typeenv rest-typ)))))
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
