@@ -19,17 +19,18 @@
 (define/match (typeof expr typeenv)
   
   ; Builtins
-  [((list '+ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
-  [((list '- e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
-  [((list '* e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
-  [((list '/ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'num 'error)]
-  [((list '> e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'bool 'error)]
-  [((list '= e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'bool 'error)]
-  [((list '>= e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'num) (equal? (typeof e2 typeenv) 'num)) 'bool 'error)]
-  [((list '++ e1 e2) typeenv) (if (and (equal? (typeof e1 typeenv) 'str) (equal? (typeof e2 typeenv) 'str)) 'str 'error)]
-  [((list '! e1) typeenv) (if (equal? (typeof e1 typeenv) 'bool) 'bool 'error)]
-  [((list 'num->str e1) typeenv) (if (equal? (typeof e1 typeenv) 'num) 'str 'error)]
-  [((list 'len e1) typeenv) (if (equal? (typeof e1 typeenv) 'str) 'num 'error)]
+  [((list '+ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error) ]
+  [((list '+ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
+  [((list '- args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
+  [((list '* args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
+  [((list '/ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
+  [((list '> args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'bool 'error)]
+  [((list '= args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'bool 'error)]
+  [((list '>= args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'bool 'error)]
+  [((list '++ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'str) (equal? (typeof (second args) typeenv) 'str)) 'str 'error)]
+  [((list '! args ...) typeenv) (if (and (equal? 1 (length args)) (equal? (typeof (first args) typeenv) 'bool)) 'bool 'error)]
+  [((list 'num->str args ...) typeenv) (if (and (equal? 1 (length args)) (equal? (typeof (first args) typeenv) 'num)) 'str 'error)]
+  [((list 'len args ...) typeenv) (if (and (equal? 1 (length args)) (equal? (typeof (first args) typeenv) 'str)) 'num 'error)]
     
   ; Function Calls
   [((list fn expr ...) typeenv) (let* ([fn-type (lookup fn typeenv)]
