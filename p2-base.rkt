@@ -137,18 +137,24 @@
                                           (typeo e2 env 'str)
                                           (== type 'str))
                                          )))))
-   ((fresh (fn args fn-typ fn-rtn-typ fn-arg-type)
+   ; Function calls
+   ((fresh (fn args fn-typ fn-arg-type)
            (== expr (cons fn args))
-           (== fn-typ (run 1 (out) (typeo fn env out)))
-           (== fn-typ (list (cons fn-arg-type (cons fn-rtn-typ '()))))
-           (type-listo args env fn-arg-type) (== type fn-rtn-typ)))
-      
+           (typeo fn env fn-typ)
+           (== fn-typ (list (cons fn-arg-type (cons type '()))))
+           (type-listo args env type)))
 
-   ; function calls
-   ; TODO
-
-   ; function definitions
-   ; TODO
+   ; Function expression
+   ((fresh (ids lmb args body arg-types zip-list newenv)
+           (== expr (cons lmb args))
+           (== lmb (list 'lambda ids body))
+           (list-symbolo ids)
+           (equal-lengtho ids args)
+           (mapo args env arg-types)
+           (zippo ids arg-types zip-list)
+           (appendo env zip-list newenv)
+           (typeo body newenv type)
+           ))     
    ))
 
 
@@ -184,9 +190,65 @@
                                 (== exp-types (cons ftyp rest-typ))
                                 (== (list ftyp) (run 1 (out) (typeo farg typeenv out)))
                                 (type-listo rest-arg typeenv rest-typ)))))
-  
+
+(define (appendo xs ys xsys)
+  (conde ((== xs '())
+          (== ys xsys))
+         ((fresh (x xs^ xsys^)
+                 (== xs (cons x xs^))
+                 (== xsys (cons x xsys^))
+                 (appendo xs^ ys xsys^)))))
+
+(define (equal-lengtho l1 l2)
+  (conde ((== l1 '())
+          (== l2 '()))
+         ((=/= l1 '())
+          (=/= l2 '())
+          (fresh (f-l1 r-l1 f-l2 r-l2 zip-list)
+                 (== (cons f-l1 r-l1) l1)
+                 (== (cons f-l2 r-l2) l2)
+                 (equal-lengtho r-l1 r-l2)))))
 
 
+(define (zippo l1 l2 output)
+  (conde ((== l1 '())
+          (== l2 '())
+          (== output '()))
+         ((fresh (f-l1 r-l1 f-l2 r-l2 r-output f-pair)
+                 (== l1 (cons f-l1 r-l1))
+                 (== l2 (cons f-l2 r-l2))
+                 (== f-pair (cons f-l1 f-l2))
+                 (== output (cons f-pair r-output))
+                 (zippo r-l1 r-l2 r-output)))))
+
+(define (mapo lst env flst)
+  (conde ((== lst '())
+          (== flst '()))
+         ((fresh (f-lst r-lst r-flst f-lst-typ)
+                 (== (cons f-lst r-lst) lst)
+                 (typeo f-lst env f-lst-typ)
+                 (== (cons f-lst-typ r-flst) flst)
+                 (mapo r-lst env r-flst)
+                 ))))
+
+(define (list-symbolo lst)
+  (conde ((== lst '()))
+         ((fresh (f-lst r-lst)
+                 (== lst (cons f-lst r-lst))
+                 (symbolo f-lst)
+                 (list-symbolo r-lst)))))
+
+
+
+
+
+
+
+
+
+
+
+         
 
 
 
