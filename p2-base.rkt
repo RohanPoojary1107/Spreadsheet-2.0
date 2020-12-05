@@ -19,7 +19,6 @@
 (define/match (typeof expr typeenv)
   
   ; Builtins
-  [((list '+ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error) ]
   [((list '+ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
   [((list '- args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
   [((list '* args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
@@ -114,7 +113,7 @@
            (== args (cons e1 rest))
            
            (conde ((== rest '())
-                   (conde ( (== builtin '!)
+                   (conde ((== builtin '!)
                             (typeo e1 env 'bool)
                             (== type 'bool) )
                           ((== builtin 'num->str)
@@ -128,7 +127,7 @@
                                   (conde ((conde ((== builtin '+)) ((== builtin '-)) ((== builtin '*)) ((== builtin '/)))
                                           (typeo e1 env 'num)
                                           (typeo e2 env 'num)
-                                          (== type 'num) )
+                                          (== type 'num))
                                          ((conde ((== builtin '>)) ((== builtin '=)) ((== builtin '>=)))
                                           (typeo e1 env 'num)
                                           (typeo e2 env 'num)
@@ -138,14 +137,16 @@
                                           (typeo e2 env 'str)
                                           (== type 'str))
                                          )))))
-   ; Function calls
-   ((fresh (fn args fn-typ fn-arg-type)
+   ; Function expression
+   ((fresh (fn args fn-typ fn-arg-type exp-fn-arg-type rtn-type)
            (== expr (cons fn args))
            (typeo fn env fn-typ)
-           (== fn-typ (list (cons fn-arg-type (cons type '()))))
-           (type-listo args env type)))
+           (== fn-typ (cons exp-fn-arg-type (cons rtn-type '())))
+           (type-listo args env fn-arg-type)
+           (== exp-fn-arg-type fn-arg-type)
+           (== type rtn-type)
+           ))
 
-   ; Function expression
    ((fresh (ids lmb args body arg-types zip-list newenv)
            (== expr (cons lmb args))
            (== lmb (list 'lambda ids body))
@@ -153,9 +154,19 @@
            (equal-lengtho ids args)
            (mapo args env arg-types)
            (zippo ids arg-types zip-list)
-           (appendo env zip-list newenv)
+           (appendo zip-list env newenv)
            (typeo body newenv type)
-           ))     
+           ))
+   
+   ; function definition
+   ((fresh (ids list-typs body newenv out newenv2 out2)
+           (== expr (list 'lambda ids body))
+           (typeo body newenv out)
+           (appendo env newenv newenv2)
+           (typeo body newenv2 out2)
+           (list-lookupo ids newenv2 list-typs)
+           (== type (cons list-typs (list out2)))
+           ))
    ))
 
 
@@ -188,8 +199,8 @@
          ((=/= args '()) (=/= exp-types '())
                          (fresh (farg rest-arg ftyp rest-typ)
                                 (== args (cons farg rest-arg))
+                                (typeo farg typeenv ftyp)
                                 (== exp-types (cons ftyp rest-typ))
-                                (== (list ftyp) (run 1 (out) (typeo farg typeenv out)))
                                 (type-listo rest-arg typeenv rest-typ)))))
 
 (define (appendo xs ys xsys)
@@ -239,7 +250,14 @@
                  (symbolo f-lst)
                  (list-symbolo r-lst)))))
 
-
+(define (list-lookupo ids alst output)
+  (conde ((== ids '())
+          (== output '()))
+         ((fresh (fid rid routput ftyp)
+                 (== ids (cons fid rid))
+                 (lookupo fid alst ftyp)
+                 (== output (cons ftyp routput))
+                 (list-lookupo rid alst routput)))))
 
 
 

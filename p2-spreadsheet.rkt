@@ -22,10 +22,61 @@
   is correctly annotated.
 |#
 (define (type-check-spreadsheet spreadsheet)
-  (let* (; [defs      ...definitions... ]
-         ; ....
+  (let* ([defs (second spreadsheet)]
+         [cols (third spreadsheet)]
+         [env (getEnv (rest defs))]
          )
-    (void)))
+    env
+    ;(type-check-cols (rest cols) env '())
+    ))
+
+(define (getEnv defs)
+  (foldl (lambda (def acc) (append acc (list (cons (first def) (first (run 1 (out) (typeo (second def) acc out))))))) '() defs))
+
+(define (type-check-cols cols env acc)
+  (if (null? cols)
+      acc
+      (let* ([f-col (first cols)]
+             [f-col-name (first f-col)]
+             [f-col-typ (second f-col)]
+             [r-col (rest cols)]
+             [check-f-col (type-check-col (third f-col) f-col-typ env)]
+             )
+        (if check-f-col
+            (type-check-cols r-col (append env (list (cons f-col-name f-col-typ))) (append acc (list check-f-col)))
+            (type-check-cols r-col (append env (list (cons f-col-name 'error))) (append acc (list check-f-col))))
+        )
+      ))
+
+(define/match (type-check-col col exp-typ env)
+  [((list 'values vals ...) exp-typ env)
+   (if (null? vals)
+       #f
+       (check-type vals exp-typ env))]
+  [((list 'computed expr) exp-typ env)
+   (let ([expr-typ (safe-first (run 1 (out) (typeo expr env out)))])
+     (if (equal? expr-typ exp-typ)
+         #t
+         #f))]
+  )
+
+(define (safe-first lst)
+  (if (null? lst)
+      lst
+      (first lst)))
+
+(define (check-type args exp-typ env)
+  (if (null? args)
+      #t
+      (let* ([f-arg (first args)]
+             [r-arg (rest args)]
+             [f-typ (safe-first (run 1 (out) (typeo f-arg env out)))]
+             )
+        (if (equal? f-typ exp-typ)
+            (check-type r-arg exp-typ env)
+            #f)))
+  )
+                
 
 ;-------------------------------------------------------------------------------
 ; * Task 4: Synthesizing Programs *
@@ -47,7 +98,7 @@
 (define-syntax fill-in
   (syntax-rules ()
     [(fill-in lvar expr type n)
-     (void) ; TODO
-    ]))
+     (run n (lvar) (typeo expr '() type))
+     ]))
 
 

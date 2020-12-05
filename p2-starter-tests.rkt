@@ -49,7 +49,11 @@
 
     (test-equal? "(typeof '(f (g 3)) '((f . ((num) num)) (g . ((num) str))))"
                  (typeof '(f (g 3)) '((f . ((num) num)) (g . ((num) str))))
-                 'error))
+                 'error)
+    
+   (test-equal? "(typeof '(f (g 3) (h 1)) '((f . ((num) str)) (g . ((num) num))) (h . ((num num num) str))))"
+                 (typeof '(f (g 3) (h 1 2 3)) '((f . ((num str) str)) (g . ((num) num)) (h . ((num num num) str))))
+                 'str))
 
    (test-suite
     "task2"
@@ -63,11 +67,15 @@
 
     (test-equal? "(run 1 (out) (typeo '((lambda (x) x) 3) '() out))"
                  (run 1 (out) (typeo '((lambda (x) x) 3) '() out))
-                 '(num)))
+                 '(num))
 
-    (test-equal? "(run 1 (out) (typeo '((lambda (x) (g x))) '((g . ((num) num))) out))"
+    (test-equal? "(run 1 (out) (typeo '(lambda (x) (g x)) '((g . ((num) num))) out))"
                  (run 1 (out) (typeo '(lambda (x) (g x)) '((g . ((num) num))) out))
                  '(((num) num)))
+    
+    (test-equal? "(run 1 (out) (typeo '((lambda (x) (+ x y))) '((g . ((num) num)) (h . ((num str) bool))) out))"
+              (run 1 (out) (typeo '(lambda (x y z) (h (g x (+ (len (g z 1)) y)) (num->str x))) '((g . ((num num) str)) (h . ((str str) bool))) out))
+                 '(((num num num) bool))))
 
 
    (test-suite
@@ -82,7 +90,56 @@
                              (age   num (values 12 15 18 49 17))
                              (voter bool (computed (canvote age)))
                              (voter2 bool (computed (>= age name))))))
-                     '(#t #t #t #f)))
+                     '(#t #t #t #f))
+    
+      (test-equal? "Task 3 EXPR Zoo"
+                    (type-check-spreadsheet
+                       '(spreadsheet
+                           (def (driving-age 16)
+                                (driving-age2 driving-age)
+                                (voting-age (+ driving-age2 2))
+                                (condition-checker (lambda (x y) (>= x y)))
+                                (get-fullname (lambda (x y) (++ x y)))
+                                (get-namelength (lambda (x) (len x)))
+                                (cannotvote (lambda (x) (! x)))
+                                (cannotvote2 cannotvote)
+                                (age-name (lambda (x y z) (++ (num->str x) (get-fullname y z)))))
+                           (columns
+                             (first-name  str (values "harry" "betty" "clare" "eric" "sam"))
+                             (last-name  str (values "potter" "crocker" "blare" "cire" "bam"))
+                             (age   num (values 12 15 18 49 2000))
+                             (voter bool (computed ((lambda (x) (condition-checker x voting-age)) age)))
+                             (driver bool (computed ((lambda (x) (condition-checker x driving-age2)) age)))
+                             (full-names str (computed (get-fullname first-name last-name)))
+                             (lengths num (computed (get-namelength full-names)))
+                             (notvoter bool (computed (cannotvote2 voter)))
+                             (age-and-name str (computed (age-name age first-name last-name))))))
+                     '(#t #t #t #t #t #t #t #t #t))
+      
+      (test-equal? "Task 3 identity function"
+                    (type-check-spreadsheet
+                       '(spreadsheet
+                           (def (iden (lambda (x) x))) 
+                           (columns
+                             (first-name str (values "harry" "betty" "clare" "eric"))
+                             (num  num (values 1 2 3 4))
+                             (id-num num (computed (iden num)))
+                             )))
+                     '(#t #t #t))
+      
+      (test-case  "Task 3 conflicting column types"
+                 (let* ([call (type-check-spreadsheet
+                  '(spreadsheet
+                    (def (voting-age 2)
+                         (is-2 (lambda (x) (= x 2) ))
+                      )
+                    (columns
+                         (id str (values 1 2 3 4 5))
+                         (two bool (computed (is-2 id)))
+                        )))])
+                   ; could be two cases
+                   (or (check-equal? call '(#f #f))
+                       (check-equal? call '(#f #t))))))
    (test-suite
     "task4"
     (test-equal? "fill-in returns some answers"
