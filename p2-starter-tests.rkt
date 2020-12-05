@@ -68,6 +68,13 @@
     (test-equal? "(run 1 (out) (typeo '((lambda (x) x) 3) '() out))"
                  (run 1 (out) (typeo '((lambda (x) x) 3) '() out))
                  '(num))
+    (test-equal? "(run 1 (v) (typeo '(lambda (x) 3) '((a . num)) v))"
+                 (run 1 (v) (typeo '(lambda (x) 3) '((a . num)) v))
+                 '(((_.0) num)))
+
+    (test-equal? "(run 1 (out) (typeo '(lambda (x) (+ h x)) '() out))"
+                 (run 1 (out) (typeo '(lambda (x) (+ "h" x)) '() out))
+                 '())
 
     (test-equal? "(run 1 (out) (typeo '(lambda (x) (g x)) '((g . ((num) num))) out))"
                  (run 1 (out) (typeo '(lambda (x) (g x)) '((g . ((num) num))) out))
@@ -92,6 +99,18 @@
                              (voter2 bool (computed (>= age name))))))
                      '(#t #t #t #f))
     
+      (test-equal? "sample 2 in project handout"
+                   (type-check-spreadsheet
+                    '(spreadsheet
+                      (def (voting-age 18)
+                        (canvote (lambda (x) (>= x voting-age))))
+                      (columns
+                       (name str (values 4 "betty" "clare" "eric" "sam"))
+                       (age num (values 12 15 18 49 17))
+                       (voter bool (computed (canvote age)))
+                       (voter2 bool (computed (>= age name))))))
+                   '(#f #t #t #f))
+    
       (test-equal? "Task 3 EXPR Zoo"
                     (type-check-spreadsheet
                        '(spreadsheet
@@ -115,17 +134,6 @@
                              (notvoter bool (computed (cannotvote2 voter)))
                              (age-and-name str (computed (age-name age first-name last-name))))))
                      '(#t #t #t #t #t #t #t #t #t))
-      
-      (test-equal? "Task 3 identity function"
-                    (type-check-spreadsheet
-                       '(spreadsheet
-                           (def (iden (lambda (x) x))) 
-                           (columns
-                             (first-name str (values "harry" "betty" "clare" "eric"))
-                             (num  num (values 1 2 3 4))
-                             (id-num num (computed (iden num)))
-                             )))
-                     '(#t #t #t))
       
       (test-case  "Task 3 conflicting column types"
                  (let* ([call (type-check-spreadsheet

@@ -3,7 +3,8 @@
 ; If you would like us to test this file with our correct implementation of
 ; "typeof" and "typeo", change the import to "p2-soln.rkt" before submitting
 ; your code.
-(require "p2-base.rkt") ; (require "p2-soln.rkt")
+(require "p2-base.rkt")
+;(require "p2-soln.rkt")
 
 (require "mk.rkt")
 ; (require racket/pretty) ; you might find the prettyprint function useful
@@ -24,60 +25,103 @@
 (define (type-check-spreadsheet spreadsheet)
   (let* ([defs (second spreadsheet)]
          [cols (third spreadsheet)]
-         [env (getEnv (rest defs))]
+         [typeenv (get-env (rest defs))]
          )
-    env
-    ;(type-check-cols (rest cols) env '())
-    ))
+    (type-check-cols (rest cols) typeenv '())))
 
-(define (getEnv defs)
-  (foldl (lambda (def acc) (append acc (list (cons (first def) (first (run 1 (out) (typeo (second def) acc out))))))) '() defs))
 
+#|
+(get-env defs)
+  defs: A list of definitions
+
+  Returns an association list representing the type environment
+  after all definitions have been type checked.
+|#
+(define (get-env defs)
+  (if (null? defs)
+      '()
+      (foldl (lambda (def acc)
+               (append acc (list (cons (first def) (first (run 1 (out) (typeo (second def) acc out)))))))
+             '()
+             defs)))
+
+
+#|
+(type-check-cols cols env acc)
+  cols: A list of columns in the spreadsheet.
+  env: An association list representing the type environment.
+  acc: A list.
+
+  Type checking each column in the speadsheet and returning
+  returns a list of booleans representing whether the annotated
+  type of each column is correct.
+|#
 (define (type-check-cols cols env acc)
   (if (null? cols)
       acc
-      (let* ([f-col (first cols)]
-             [f-col-name (first f-col)]
-             [f-col-typ (second f-col)]
-             [r-col (rest cols)]
-             [check-f-col (type-check-col (third f-col) f-col-typ env)]
+      (let* ([fcol (first cols)]
+             [fcol-name (first fcol)]
+             [fcol-typ (second fcol)]
+             [rcols (rest cols)]
+             [check-fcol (type-check-col (third fcol) fcol-typ env)]
              )
-        (if check-f-col
-            (type-check-cols r-col (append env (list (cons f-col-name f-col-typ))) (append acc (list check-f-col)))
-            (type-check-cols r-col (append env (list (cons f-col-name 'error))) (append acc (list check-f-col))))
-        )
-      ))
+        (if check-fcol
+            (type-check-cols rcols (append env (list (cons fcol-name fcol-typ))) (append acc (list check-fcol)))
+            (type-check-cols rcols (append env (list (cons fcol-name 'error))) (append acc (list check-fcol)))))))
 
-(define/match (type-check-col col exp-typ env)
-  [((list 'values vals ...) exp-typ env)
+
+#|
+(type-check-col col exp-typ env)
+  col: A list of columns in the spreadsheet.
+  exp-typ: The annotated type of col.
+  env: An association list representing the type environment.
+
+  Check annotated of given column is correct. 
+|#
+(define/match (type-check-col col exp-col-typ env)
+  [((list 'values vals ...) exp-col-typ env)  ; If col is a value column
    (if (null? vals)
        #f
-       (check-type vals exp-typ env))]
-  [((list 'computed expr) exp-typ env)
+       (check-type vals exp-col-typ env))]
+  [((list 'computed expr) exp-col-typ env)  ; If col is a computed column
    (let ([expr-typ (safe-first (run 1 (out) (typeo expr env out)))])
-     (if (equal? expr-typ exp-typ)
+     (if (equal? expr-typ exp-col-typ)
          #t
-         #f))]
-  )
+         #f))])
 
-(define (safe-first lst)
-  (if (null? lst)
-      lst
-      (first lst)))
 
-(define (check-type args exp-typ env)
+#|
+(check-type args exp-typ env)
+  col: A value column.
+  exp-typ: The annotated type of col.
+  env: An association list representing the type environment.
+
+  Checks if the type of each value in col matches the
+  annoted type of col. 
+|#
+(define (check-type args exp-col-typ env)
   (if (null? args)
       #t
       (let* ([f-arg (first args)]
              [r-arg (rest args)]
-             [f-typ (safe-first (run 1 (out) (typeo f-arg env out)))]
+             [f-arg-typ (safe-first (run 1 (out) (typeo f-arg env out)))]
              )
-        (if (equal? f-typ exp-typ)
-            (check-type r-arg exp-typ env)
-            #f)))
-  )
-                
+        (if (equal? f-arg-typ exp-col-typ)
+            (check-type r-arg exp-col-typ env)
+            #f))))
 
+
+#|
+(safe-first args lst)
+  lst: A list.
+
+  A safe version of built-in function `first`
+|#
+(define (safe-first lst)
+  (if (null? lst)
+      lst
+      (first lst)))
+                
 ;-------------------------------------------------------------------------------
 ; * Task 4: Synthesizing Programs *
 ;-------------------------------------------------------------------------------
@@ -98,7 +142,6 @@
 (define-syntax fill-in
   (syntax-rules ()
     [(fill-in lvar expr type n)
-     (run n (lvar) (typeo expr '() type))
-     ]))
+     (run n (lvar) (typeo expr '() type))]))
 
 

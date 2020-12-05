@@ -17,35 +17,75 @@
   Returns the type of the expression expr: 'num, 'str, 'bool, 'error
 |#
 (define/match (typeof expr typeenv)
-  
   ; Builtins
-  [((list '+ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
-  [((list '- args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
-  [((list '* args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
-  [((list '/ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'num 'error)]
-  [((list '> args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'bool 'error)]
-  [((list '= args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'bool 'error)]
-  [((list '>= args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'num) (equal? (typeof (second args) typeenv) 'num)) 'bool 'error)]
-  [((list '++ args ...) typeenv) (if (and (equal? 2 (length args)) (equal? (typeof (first args) typeenv) 'str) (equal? (typeof (second args) typeenv) 'str)) 'str 'error)]
-  [((list '! args ...) typeenv) (if (and (equal? 1 (length args)) (equal? (typeof (first args) typeenv) 'bool)) 'bool 'error)]
-  [((list 'num->str args ...) typeenv) (if (and (equal? 1 (length args)) (equal? (typeof (first args) typeenv) 'num)) 'str 'error)]
-  [((list 'len args ...) typeenv) (if (and (equal? 1 (length args)) (equal? (typeof (first args) typeenv) 'str)) 'num 'error)]
+  [((list '+ args ...) typeenv) (if (and (equal? 2 (length args))
+                                         (equal? (typeof (first args) typeenv) 'num)
+                                         (equal? (typeof (second args) typeenv) 'num))
+                                    'num
+                                    'error)]
+  [((list '- args ...) typeenv) (if (and (equal? 2 (length args))
+                                         (equal? (typeof (first args) typeenv) 'num)
+                                         (equal? (typeof (second args) typeenv) 'num))
+                                    'num
+                                    'error)]
+  [((list '* args ...) typeenv) (if (and (equal? 2 (length args))
+                                         (equal? (typeof (first args) typeenv) 'num)
+                                         (equal? (typeof (second args) typeenv) 'num))
+                                    'num
+                                    'error)]
+  [((list '/ args ...) typeenv) (if (and (equal? 2 (length args))
+                                         (equal? (typeof (first args) typeenv) 'num)
+                                         (equal? (typeof (second args) typeenv) 'num))
+                                    'num
+                                    'error)]
+  [((list '> args ...) typeenv) (if (and (equal? 2 (length args))
+                                         (equal? (typeof (first args) typeenv) 'num)
+                                         (equal? (typeof (second args) typeenv) 'num))
+                                    'bool
+                                    'error)]
+  [((list '= args ...) typeenv) (if (and (equal? 2 (length args))
+                                         (equal? (typeof (first args) typeenv) 'num)
+                                         (equal? (typeof (second args) typeenv) 'num))
+                                    'bool
+                                    'error)]
+  [((list '>= args ...) typeenv) (if (and (equal? 2 (length args))
+                                          (equal? (typeof (first args) typeenv) 'num)
+                                          (equal? (typeof (second args) typeenv) 'num))
+                                     'bool
+                                     'error)]
+  [((list '++ args ...) typeenv) (if (and (equal? 2 (length args))
+                                          (equal? (typeof (first args) typeenv) 'str)
+                                          (equal? (typeof (second args) typeenv) 'str))
+                                     'str
+                                     'error)]
+  [((list '! args ...) typeenv) (if (and (equal? 1 (length args))
+                                         (equal? (typeof (first args) typeenv) 'bool))
+                                    'bool
+                                    'error)]
+  [((list 'num->str args ...) typeenv) (if (and (equal? 1 (length args))
+                                                (equal? (typeof (first args) typeenv) 'num))
+                                           'str
+                                           'error)]
+  [((list 'len args ...) typeenv) (if (and (equal? 1 (length args))
+                                           (equal? (typeof (first args) typeenv) 'str))
+                                      'num 'error)]
     
   ; Function Calls
-  [((list fn expr ...) typeenv) (let* ([fn-type (lookup fn typeenv)]
-                                       [exp-arg-type (first fn-type)]
+  [((list fn args ...) typeenv) (let* ([fn-type (lookup fn typeenv)]
+                                       [exp-arg-types (first fn-type)]
                                        [fn-return-type (second fn-type)])
-                                  (if (check-func-valid exp-arg-type expr typeenv)
+                                  (if (check-func-valid exp-arg-types args typeenv)
                                       fn-return-type
                                       'error))]
-  
+  ; Constants and Identifiers
   [(expr typeenv) (cond             
-                    ; Constants and Identifiers
                     [(number? expr) 'num]
                     [(string? expr) 'str]
                     [(boolean? expr) 'bool]   
-                    [(symbol? expr) (let ([val (lookup expr typeenv)])
-                                      (if (equal? val #f) 'error val))])]
+                    [(symbol? expr) (let ([expr-typ (lookup expr typeenv)])
+                                      (if (equal? expr-typ #f)
+                                          'error
+                                          expr-typ))])]
   )
 
 ; Helper functions for Task 1
@@ -67,19 +107,32 @@
   #f
 |#
 (define (lookup key alst)
-  (if (null? alst) #f
+  (if (null? alst)
+      #f
       (let* ([first (first alst)]
              [rest (rest alst)]
              [first-key (car first)]
              [first-value (cdr first)])
-        (if (equal? first-key key) first-value (lookup key rest))
-        ) 
-      ))
+        (if (equal? first-key key)
+            first-value
+            (lookup key rest)))))
 
-; Add your helper functions here
-(define (check-func-valid exp-arg-type args typeenv)
-  (let ([actual-arg-type (foldl (lambda (arg acc) (append acc (list (typeof arg typeenv)))) '() args)])
-    (equal? actual-arg-type exp-arg-type)))
+#|
+(check-func-valid exp-arg-types args typeenv)
+  exp-arg-types: A list
+  args: A list
+  typeenv: An association list 
+
+  Checks if type of every element in args is equal to the type
+  expected.
+|#
+(define (check-func-valid exp-arg-types args typeenv)
+  (let ([actual-arg-types (foldl (lambda (arg acc)
+                                   (append acc (list (typeof arg typeenv))))
+                                 '()
+                                 args)])
+    (equal? actual-arg-types exp-arg-types)))
+
 ;-------------------------------------------------------------------------------
 ; * Task 2: A Type Inferencer Relation in miniKanren
 ;-------------------------------------------------------------------------------
@@ -107,65 +160,71 @@
     (lookupo expr env type))
 
    ; builtins
-
-   ((fresh (builtin args rest e1 e2)
+   ((fresh (builtin args rest arg1 arg2)
            (== expr (cons builtin args))
-           (== args (cons e1 rest))
-           
-           (conde ((== rest '())
+           (== args (cons arg1 rest))
+           (conde ((== rest '())                  ; If only one argument was passed.
                    (conde ((== builtin '!)
-                            (typeo e1 env 'bool)
-                            (== type 'bool) )
+                           (typeo arg1 env 'bool)
+                           (== type 'bool) )
                           ((== builtin 'num->str)
-                           (typeo e1 env 'num)
+                           (typeo arg1 env 'num)
                            (== type 'str) )
                           ((== builtin 'len)
-                           (typeo e1 env 'str)
+                           (typeo arg1 env 'str)
                            (== type 'num)))
                    )
-                  ((=/= rest '()) (== rest (cons e2 '()))
-                                  (conde ((conde ((== builtin '+)) ((== builtin '-)) ((== builtin '*)) ((== builtin '/)))
-                                          (typeo e1 env 'num)
-                                          (typeo e2 env 'num)
-                                          (== type 'num))
-                                         ((conde ((== builtin '>)) ((== builtin '=)) ((== builtin '>=)))
-                                          (typeo e1 env 'num)
-                                          (typeo e2 env 'num)
-                                          (== type 'bool) )
-                                         ((== builtin '++)
-                                          (typeo e1 env 'str)
-                                          (typeo e2 env 'str)
-                                          (== type 'str))
-                                         )))))
+                  ((=/= rest '())                
+                   (== rest (cons arg2 '()))     ; If two arguments were passed.
+                   (conde ((conde ((== builtin '+))
+                                  ((== builtin '-))
+                                  ((== builtin '*))
+                                  ((== builtin '/)))
+                           (typeo arg1 env 'num)
+                           (typeo arg2 env 'num)
+                           (== type 'num))
+                          ((conde ((== builtin '>))
+                                  ((== builtin '=))
+                                  ((== builtin '>=)))
+                           (typeo arg1 env 'num)
+                           (typeo arg2 env 'num)
+                           (== type 'bool))
+                          ((== builtin '++)
+                           (typeo arg1 env 'str)
+                           (typeo arg2 env 'str)
+                           (== type 'str)))))))
+   
    ; Function expression
-   ((fresh (fn args fn-typ fn-arg-type exp-fn-arg-type rtn-type)
+   ((fresh (fn args fn-typ fn-arg-typ exp-fn-arg-typ fn-rtn-typ)
            (== expr (cons fn args))
+           (not-builtino fn)
+           (=/= fn 'lambda)
            (typeo fn env fn-typ)
-           (== fn-typ (cons exp-fn-arg-type (cons rtn-type '())))
-           (type-listo args env fn-arg-type)
-           (== exp-fn-arg-type fn-arg-type)
-           (== type rtn-type)
+           (== fn-typ (cons exp-fn-arg-typ (cons fn-rtn-typ '())))
+           (type-listo args env fn-arg-typ)
+           (== exp-fn-arg-typ fn-arg-typ)
+           (== type fn-rtn-typ)
            ))
 
-   ((fresh (ids lmb args body arg-types zip-list newenv)
+   ((fresh (ids lmb args body arg-types zip-list newenv) ;handling lambda function calls
            (== expr (cons lmb args))
            (== lmb (list 'lambda ids body))
            (list-symbolo ids)
            (equal-lengtho ids args)
-           (mapo args env arg-types)
+           (type-listo args env arg-types)
            (zippo ids arg-types zip-list)
            (appendo zip-list env newenv)
            (typeo body newenv type)
            ))
    
    ; function definition
-   ((fresh (ids list-typs body newenv out newenv2 out2)
+   ((fresh (ids list-types body typeenv out newenv output)
            (== expr (list 'lambda ids body))
-           (typeo body newenv out)
-           (appendo env newenv newenv2)
-           (typeo body newenv2 out2)
-           (list-lookupo ids newenv2 list-typs)
-           (== type (cons list-typs (list out2)))
+           (typeo body typeenv out)
+           (appendo env typeenv newenv)
+           (typeo body newenv output)
+           (type-listo ids newenv list-types)
+           (== type (cons list-types (list output)))
            ))
    ))
 
@@ -189,11 +248,27 @@
                  (lookupo key rest value)))))
 
 
-; Add your helper functions here
+#|
+(boolo expr)
+  expr: A key in the association list
+
+  The relational holds true if expr is of
+  boolean (#t or #f) type.
+|#
+
 (define (boolo expr)
   (conde ((== expr #t))
          ((== expr #f))))
 
+#|
+(type-listo args typeenv exp-types)
+  args: A list of arguments
+  typeenv: An association list
+  exp-types: A list of expected types of the arguments
+
+  This relation holds if exp-types is the list of types
+of the arguments.
+|#
 (define (type-listo args typeenv exp-types)
   (conde ((== args '()) (== exp-types '()))
          ((=/= args '()) (=/= exp-types '())
@@ -203,6 +278,15 @@
                                 (== exp-types (cons ftyp rest-typ))
                                 (type-listo rest-arg typeenv rest-typ)))))
 
+#|
+(appendo xs ys xsys)
+  xs: A list.
+  ys: A list.
+  xsys: A list.
+
+  This relation holds if xsys is equal to list ys
+  appended to list xs.
+|#
 (define (appendo xs ys xsys)
   (conde ((== xs '())
           (== ys xsys))
@@ -211,56 +295,77 @@
                  (== xsys (cons x xsys^))
                  (appendo xs^ ys xsys^)))))
 
-(define (equal-lengtho l1 l2)
-  (conde ((== l1 '())
-          (== l2 '()))
-         ((=/= l1 '())
-          (=/= l2 '())
-          (fresh (f-l1 r-l1 f-l2 r-l2 zip-list)
-                 (== (cons f-l1 r-l1) l1)
-                 (== (cons f-l2 r-l2) l2)
-                 (equal-lengtho r-l1 r-l2)))))
+#|
+(equal-lengtho lst1 lst2)
+  lst1: A list.
+  lst2: A list.
 
+  This relation holds if lst1 and lst2 have the same
+  number of elements.
+|#
+(define (equal-lengtho lst1 lst2)
+  (conde ((== lst1 '())
+          (== lst2 '()))
+         ((=/= lst1 '())
+          (=/= lst2 '())
+          (fresh (f-lst1 r-lst1 f-lst2 r-lst2 zip-list)
+                 (== (cons f-lst1 r-lst1) lst1)
+                 (== (cons f-lst2 r-lst2) lst2)
+                 (equal-lengtho r-lst1 r-lst2)))))
 
-(define (zippo l1 l2 output)
-  (conde ((== l1 '())
-          (== l2 '())
-          (== output '()))
-         ((fresh (f-l1 r-l1 f-l2 r-l2 r-output f-pair)
-                 (== l1 (cons f-l1 r-l1))
-                 (== l2 (cons f-l2 r-l2))
-                 (== f-pair (cons f-l1 f-l2))
-                 (== output (cons f-pair r-output))
-                 (zippo r-l1 r-l2 r-output)))))
+#|
+(zippo lst1 lst2 output)
+  lst1: A list.
+  lst2: A list.
+  output: A list of pairs
 
-(define (mapo lst env flst)
-  (conde ((== lst '())
-          (== flst '()))
-         ((fresh (f-lst r-lst r-flst f-lst-typ)
-                 (== (cons f-lst r-lst) lst)
-                 (typeo f-lst env f-lst-typ)
-                 (== (cons f-lst-typ r-flst) flst)
-                 (mapo r-lst env r-flst)
-                 ))))
+  This relation holds if 'output' is the result of elements
+  in lst1 zipped with elements in lst2.
+|#
+(define (zippo lst1 lst2 zip-list)
+  (conde ((== lst1 '())
+          (== lst2 '())
+          (== zip-list '()))
+         ((fresh (f-lst1 r-lst1 f-lst2 r-lst2 r-zip-list f-pair)
+                 (== lst1 (cons f-lst1 r-lst1))
+                 (== lst2 (cons f-lst2 r-lst2))
+                 (== f-pair (cons f-lst1 f-lst2))
+                 (== zip-list (cons f-pair r-zip-list))
+                 (zippo r-lst1 r-lst2 r-zip-list)))))
 
+#|
+(list-symbolo lst)
+  lst: A list.
+
+  This relation holds if all elements in lst are symbols.
+|#
 (define (list-symbolo lst)
   (conde ((== lst '()))
-         ((fresh (f-lst r-lst)
-                 (== lst (cons f-lst r-lst))
-                 (symbolo f-lst)
-                 (list-symbolo r-lst)))))
-
-(define (list-lookupo ids alst output)
-  (conde ((== ids '())
-          (== output '()))
-         ((fresh (fid rid routput ftyp)
-                 (== ids (cons fid rid))
-                 (lookupo fid alst ftyp)
-                 (== output (cons ftyp routput))
-                 (list-lookupo rid alst routput)))))
+         ((fresh (first rest)
+                 (== lst (cons first rest))
+                 (symbolo first)
+                 (list-symbolo rest)))))
 
 
+#|
+(not-builtino fn)
+  fn: A symbol.
 
+  This relation holds if fn is not one of the
+  built-in operations.
+|#
+(define (not-builtino fn)
+  (conde((=/= fn '+)
+         (=/= fn '-)
+         (=/= fn '*)
+         (=/= fn '/)
+         (=/= fn '>)
+         (=/= fn '=)
+         (=/= fn '>=)
+         (=/= fn '++)
+         (=/= fn '!)
+         (=/= fn 'num->str)
+         (=/= fn 'len))))
 
 
 
@@ -279,3 +384,4 @@
 
 
 
+  
